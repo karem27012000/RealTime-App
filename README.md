@@ -15,6 +15,9 @@ ASP.NET Core Web API (http://localhost:5000)
    └── Domain       → Conversation, Message entities
 ```
 
+> **Also in this repo:** [`ios/FlightFinder`](ios/FlightFinder/README.md) is a SwiftUI iPhone app that searches live flights
+> across a date range, with airport, direct-only and price-sort filters.
+
 ## Project structure
 
 ```
