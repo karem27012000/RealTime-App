@@ -1,0 +1,58 @@
+/* Global styles and theme colors (used as CSS variables by the components). */
+:root {
+  --bg: #ffffff;
+  --text: #1f2328;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --sidebar-bg: #f7f7f8;
+  --hover: #ececf1;
+  --active: #e0e7ff;
+  --primary: #4f46e5;
+  --on-primary: #ffffff;
+  --bot-bubble: #f1f1f4;
+  --input-bg: #ffffff;
+  --error-bg: #fef2f2;
+  --error-text: #b91c1c;
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17181c;
+    --text: #e8e8ea;
+    --muted: #9ca3af;
+    --border: #2c2e34;
+    --sidebar-bg: #1e1f24;
+    --hover: #2a2c33;
+    --active: #312e81;
+    --primary: #6366f1;
+    --bot-bubble: #25262c;
+    --input-bg: #1e1f24;
+    --error-bg: #3b1515;
+    --error-text: #fca5a5;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+}
