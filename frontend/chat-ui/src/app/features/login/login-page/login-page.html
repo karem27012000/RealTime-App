@@ -1,0 +1,26 @@
+<main class="login">
+  <form class="card" (ngSubmit)="submit()">
+    <h1>💬 RealTime Chat</h1>
+    <p class="hint">Pick a nickname to start chatting. Use the same nickname to come back later.</p>
+
+    <label for="nickname">Nickname</label>
+    <input
+      id="nickname"
+      name="nickname"
+      autocomplete="off"
+      maxlength="30"
+      placeholder="e.g. karem"
+      [ngModel]="nickname()"
+      (ngModelChange)="nickname.set($event)"
+      autofocus
+    />
+
+    @if (error(); as message) {
+      <p class="error" role="alert">{{ message }}</p>
+    }
+
+    <button type="submit" [disabled]="!nickname().trim() || isLoading()">
+      {{ isLoading() ? 'Joining…' : 'Join chat' }}
+    </button>
+  </form>
+</main>

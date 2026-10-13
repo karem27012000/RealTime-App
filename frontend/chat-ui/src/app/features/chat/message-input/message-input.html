@@ -1,0 +1,16 @@
+<form class="composer" (ngSubmit)="submit()">
+  <textarea
+    name="message"
+    rows="1"
+    [placeholder]="disabled() ? 'Connecting…' : 'Type a message…'"
+    [maxlength]="maxLength"
+    [ngModel]="text()"
+    (ngModelChange)="onInput($event)"
+    (keydown)="onKeydown($event)"
+    aria-label="Message"
+  ></textarea>
+
+  <button type="submit" class="composer__button" [disabled]="!text().trim() || disabled()">
+    Send
+  </button>
+</form>

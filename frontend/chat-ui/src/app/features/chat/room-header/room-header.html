@@ -1,0 +1,24 @@
+<header class="header">
+  <a class="back" routerLink="/chat" aria-label="Back to chats">←</a>
+
+  @if (room(); as room) {
+    <div class="header__info">
+      <h1>{{ room.type === 'group' ? '# ' : '' }}{{ room.name }}</h1>
+      @if (otherUser(); as user) {
+        <span class="sub" [class.sub--online]="user.isOnline">
+          {{ user.isOnline ? 'Online' : 'Last seen ' + (user.lastSeenAt | date: 'short') }}
+        </span>
+      } @else {
+        <span class="sub" [title]="memberNames()">
+          {{ room.members.length }} members · {{ onlineCount() }} online · {{ memberNames() }}
+        </span>
+      }
+    </div>
+
+    @if (room.type === 'group') {
+      <button type="button" class="leave" (click)="leave()">Leave</button>
+    }
+  } @else {
+    <div class="header__info"><h1>Loading…</h1></div>
+  }
+</header>

@@ -1,83 +1,96 @@
 # RealTime-App
 
-A trainee project: a **real-time chatbot** built with an **ASP.NET Core Web API** (.NET 10) and an **Angular 21** front end.
-Bot replies are streamed word by word over **SignalR**, conversations are saved in **SQLite** with **EF Core**, and the bot can be
-either an offline **demo bot** or **Claude** (Anthropic's AI model).
-
-```
-Angular (http://localhost:4200)
-   │  REST  /api/conversations      → list / create / rename / delete chats
-   │  SignalR /hubs/chat (stream)   → send a message, receive the reply chunk by chunk
-   ▼
-ASP.NET Core Web API (http://localhost:5000)
-   ├── Application  → ChatService / ConversationService (business logic)
-   ├── Infrastructure → EF Core + SQLite, Claude API client or Demo bot
-   └── Domain       → Conversation, Message entities
-```
+A trainee project: a **real-time chat between users**, built with an **ASP.NET Core Web API** (.NET 10) and an **Angular 21** front end.
+Users log in with a nickname, chat **one-to-one** or in **group rooms**, and see messages, **typing indicators**, **online status**
+and **unread counts** update instantly over **SignalR**. Everything is saved in **SQLite** with **EF Core**.
 
 A full project guide (technologies, architecture, every file, API, concepts) is in
 [`docs/RealTime-App-Project-Guide.docx`](docs/RealTime-App-Project-Guide.docx).
+
+```
+Angular (http://localhost:4200)
+   │  REST     /api/users, /api/rooms         → login, users, rooms, message history
+   │  SignalR  /hubs/chat?userId=...          → send messages, typing; receive live events
+   ▼
+ASP.NET Core Web API (http://localhost:5000)
+   ├── Application    → UserService / RoomService / MessageService (business logic)
+   ├── Infrastructure → EF Core + SQLite, online-presence tracker
+   └── Domain         → User, ChatRoom, RoomMember, Message
+```
+
+## Features
+
+- Nickname login (no password). The same nickname brings you back to your account.
+- **Private chats** between two users and **group rooms** anyone can create, join and leave.
+- Messages are delivered **instantly** to every open tab of every member.
+- **Online / last seen** status, **"… is typing"** indicator, **unread badges**.
+- Message history with **"Load older messages"** paging.
+- Works on desktop and phone, light and dark mode.
 
 ## Project structure
 
 ```
 backend/
-├── ChatBot.slnx
+├── ChatApp.slnx
 ├── src/
-│   ├── ChatBot.Domain/            # Entities and enums. No dependencies on other projects.
-│   │   ├── Common/BaseEntity.cs
-│   │   ├── Entities/Conversation.cs, Message.cs
-│   │   └── Enums/MessageRole.cs
-│   ├── ChatBot.Application/       # Use cases. Depends only on Domain.
-│   │   ├── Abstractions/          # Interfaces implemented by Infrastructure (repository, AI service)
+│   ├── ChatApp.Domain/            # Entities and business rules. No dependencies.
+│   │   ├── Entities/User.cs, ChatRoom.cs, RoomMember.cs, Message.cs
+│   │   ├── Enums/RoomType.cs
+│   │   └── Exceptions/DomainException.cs
+│   ├── ChatApp.Application/       # Use cases. Depends only on Domain.
+│   │   ├── Abstractions/          # Interfaces: repositories, IChatNotifier, IPresenceTracker
 │   │   ├── DTOs/                  # What the API sends and receives
-│   │   ├── Exceptions/            # NotFoundException, ValidationException
+│   │   ├── Exceptions/            # NotFound (404), Forbidden (403), Unauthorized (401)
 │   │   ├── Mappings/              # Entity → DTO
-│   │   ├── Services/              # ChatService, ConversationService
-│   │   └── DependencyInjection.cs
-│   ├── ChatBot.Infrastructure/    # Technical details. Depends on Application.
-│   │   ├── AI/                    # ClaudeChatCompletionService, DemoChatCompletionService, options
-│   │   ├── Persistence/           # AppDbContext, entity configurations, repository, migrations
-│   │   └── DependencyInjection.cs
-│   └── ChatBot.Api/               # Entry point. Controllers, SignalR hub, error handling.
-│       ├── Controllers/ConversationsController.cs
-│       ├── Hubs/ChatHub.cs, HubExceptionFilter.cs
-│       ├── Middleware/GlobalExceptionHandler.cs
+│   │   └── Services/              # UserService, RoomService, MessageService
+│   ├── ChatApp.Infrastructure/    # Technical details. Depends on Application.
+│   │   ├── Persistence/           # AppDbContext, configurations, repositories, migrations
+│   │   └── Presence/              # InMemoryPresenceTracker (who is online)
+│   └── ChatApp.Api/               # Entry point.
+│       ├── Controllers/           # UsersController, RoomsController
+│       ├── Hubs/                  # ChatHub, IChatClient, SignalRChatNotifier, user-id provider
+│       ├── Middleware/            # GlobalExceptionHandler (problem details)
 │       └── Program.cs
 └── tests/
-    └── ChatBot.Application.Tests/ # xUnit tests with hand-written fakes (no database needed)
+    └── ChatApp.Application.Tests/ # xUnit tests with hand-written fakes (no database needed)
 
-frontend/chatbot-ui/src/app/
+frontend/chat-ui/src/app/
 ├── core/
-│   ├── models/                    # TypeScript interfaces that match the API DTOs
-│   └── services/                  # ConversationApiService (HTTP), ChatHubService (SignalR)
-├── features/chat/
-│   ├── chat.store.ts              # Signal-based state for the chat screen
-│   ├── chat-page/                 # Container component (talks to the store)
-│   ├── conversation-list/         # Sidebar            (presentational: inputs + outputs)
-│   ├── message-list/              # Chat bubbles       (presentational)
-│   └── message-input/             # Text box + Send    (presentational)
-├── app.config.ts                  # HttpClient, router
-└── app.routes.ts                  # "/" and "/c/:id"
+│   ├── models/                    # TypeScript interfaces matching the API DTOs
+│   ├── services/                  # AuthService, UsersApi, RoomsApi, ChatHubService (SignalR)
+│   ├── interceptors/              # Adds the X-User-Id header to API calls
+│   └── guards/                    # authGuard / guestGuard
+├── features/
+│   ├── login/login-page/          # Pick a nickname
+│   └── chat/
+│       ├── chat.store.ts          # Signal-based state + real-time event handling
+│       ├── chat-page/             # Container component
+│       ├── sidebar/               # Chats / People / Groups tabs
+│       ├── room-header/           # Name, online status, members, Leave
+│       ├── message-list/          # Bubbles, dates, load older
+│       └── message-input/         # Text box, typing notifications
+├── app.config.ts                  # HttpClient + interceptor, router
+└── app.routes.ts                  # /login, /chat, /chat/:roomId
 ```
 
 **Why this structure?** The backend follows *Clean Architecture*: dependencies point inwards
-(`Api → Infrastructure → Application → Domain`). The business logic in `Application` does not know about EF Core,
-SQLite, SignalR or Claude, so you can swap any of them and unit-test the logic with simple fakes.
-The front end separates *container* components (know about state) from *presentational* components (only inputs/outputs).
+(`Api → Infrastructure → Application → Domain`). The business logic doesn't know about EF Core, SQLite or SignalR:
+it talks to interfaces like `IChatNotifier`, which the Api layer implements with SignalR. That makes it easy to
+unit-test with fakes and to swap technologies. The front end separates the *container* component (knows the state)
+from *presentational* components (only inputs/outputs), with all state in one signal-based store.
 
 ## Prerequisites
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- [Node.js](https://nodejs.org/) 22.12+ (or 24)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download) (Visual Studio 2026, VS Code or Rider — Visual Studio 2022 does not support .NET 10)
+- [Node.js](https://nodejs.org/) **22.12+ or 24** (older versions fail with a `require() of ES Module` error)
 - Optional: `dotnet tool install --global dotnet-ef` to create new migrations
 
 ## Run it
 
-**1. API** (creates `chatbot.db` and applies migrations on startup):
+**1. API** (creates `chatapp.db` and applies migrations on startup):
 
 ```bash
-cd backend/src/ChatBot.Api
+cd backend/src/ChatApp.Api
 dotnet run --launch-profile http
 ```
 
@@ -87,74 +100,73 @@ dotnet run --launch-profile http
 **2. Angular app** (in a second terminal):
 
 ```bash
-cd frontend/chatbot-ui
+cd frontend/chat-ui
 npm install
 npm start
 ```
 
-Open http://localhost:4200 and start chatting.
+**3. Try it:** open http://localhost:4200 in two different browsers (or one normal + one private window),
+log in with two nicknames, and chat between them.
 
-## Use Claude instead of the demo bot
+## API
 
-By default `ChatBot:Provider` is `Demo`, so everything works without an API key.
-To talk to Claude, get an API key from the [Claude Console](https://platform.claude.com/) and keep it **out of git** with user-secrets:
+REST endpoints (except login) need the header `X-User-Id: <your user id>`; the Angular app adds it automatically.
 
-```bash
-cd backend/src/ChatBot.Api
-dotnet user-secrets init
-dotnet user-secrets set "ChatBot:Provider" "Claude"
-dotnet user-secrets set "ChatBot:Claude:ApiKey" "<your-api-key>"
-```
+| Method | URL                               | Description                                   |
+| ------ | --------------------------------- | --------------------------------------------- |
+| POST   | `/api/users/login`                | `{ "nickname": "karem" }` → user (created first time) |
+| GET    | `/api/users/me`                   | The current user                              |
+| GET    | `/api/users`                      | All users with online status                  |
+| GET    | `/api/rooms`                      | My chats (private + groups), newest first     |
+| GET    | `/api/rooms/groups`               | Groups I can join                             |
+| GET    | `/api/rooms/{id}`                 | Room details with members                     |
+| POST   | `/api/rooms/private`              | `{ "userId": "..." }` → open/create private chat |
+| POST   | `/api/rooms/groups`               | `{ "name": "Trainees" }` → create group       |
+| POST   | `/api/rooms/{id}/join`            | Join a group                                  |
+| POST   | `/api/rooms/{id}/leave`           | Leave a group                                 |
+| GET    | `/api/rooms/{id}/messages`        | History, oldest first (`?before=<date>&take=50` for older) |
+| POST   | `/api/rooms/{id}/messages`        | `{ "content": "Hi" }` → send (also pushed live) |
 
-(Or set the `ANTHROPIC_API_KEY` environment variable and `ChatBot__Provider=Claude`.)
+SignalR hub `/hubs/chat?userId=<id>`:
 
-Other settings in `appsettings.json` → `ChatBot:Claude`:
+| Direction        | Name              | Payload                       |
+| ---------------- | ----------------- | ----------------------------- |
+| client → server  | `SendMessage`     | `roomId, content` → message   |
+| client → server  | `StartTyping`     | `roomId`                      |
+| server → client  | `ReceiveMessage`  | message                       |
+| server → client  | `RoomAdded`       | room (new private chat, created/joined group) |
+| server → client  | `MembersChanged`  | `roomId, memberCount`         |
+| server → client  | `PresenceChanged` | user (online / offline)       |
+| server → client  | `UserTyping`      | `{ roomId, userId, nickname }` |
 
-| Setting        | Default            | Meaning                                                  |
-| -------------- | ------------------ | -------------------------------------------------------- |
-| `Model`        | `claude-opus-5-5`  | Claude model to use                                      |
-| `MaxTokens`    | `16000`            | Maximum length of one reply                              |
-| `Effort`       | `low`              | `low` / `medium` / `high` / `xhigh` / `max` thinking effort |
-| `SystemPrompt` | friendly assistant | Instructions that define the bot's personality           |
+Errors are returned as [problem details](https://www.rfc-editor.org/rfc/rfc9457): `400` invalid input, `401` unknown user,
+`403` not a member, `404` not found.
 
-The Claude requests enable server-side **refusal fallbacks** (`fallbacks: "default"`), so if Claude declines a request the API
-retries it on a suitable fallback model inside the same call.
-
-## API endpoints
-
-| Method | URL                                   | Description                               |
-| ------ | ------------------------------------- | ----------------------------------------- |
-| GET    | `/api/conversations`                  | List conversations (newest first)         |
-| GET    | `/api/conversations/{id}`             | One conversation with its messages        |
-| POST   | `/api/conversations`                  | Create `{ "title": "optional" }`          |
-| PATCH  | `/api/conversations/{id}`             | Rename `{ "title": "..." }`               |
-| DELETE | `/api/conversations/{id}`             | Delete a conversation                     |
-| POST   | `/api/conversations/{id}/messages`    | Send `{ "content": "..." }`, wait for full reply |
-| HUB    | `/hubs/chat` → `SendMessage(id, text)` | Same, but streams the reply in chunks    |
-
-Errors are returned as [problem details](https://www.rfc-editor.org/rfc/rfc9457) (`404` not found, `400` validation).
+> **Security note:** nickname login trusts the user id the browser sends, so anyone could pretend to be someone else.
+> That's fine for learning; a real app would use passwords and signed tokens (JWT). See *next steps*.
 
 ## Tests
 
 ```bash
-cd backend && dotnet test          # domain + service tests
-cd frontend/chatbot-ui && npm test # component tests (Vitest)
+cd backend && dotnet test             # domain rules + services (27 tests)
+cd frontend/chat-ui && npm test       # components (7 tests)
 ```
 
 ## Adding a database change
 
 ```bash
 cd backend
-dotnet ef migrations add <Name> -p src/ChatBot.Infrastructure -s src/ChatBot.Api -o Persistence/Migrations
+dotnet ef migrations add <Name> -p src/ChatApp.Infrastructure -s src/ChatApp.Api -o Persistence/Migrations
 ```
 
 The migration is applied automatically the next time the API starts.
 
 ## Ideas for next steps
 
-- Add user accounts (ASP.NET Core Identity + JWT) so each user only sees their own chats.
-- Render the bot's Markdown replies (e.g. with `ngx-markdown`).
-- Rename a chat from the sidebar (the `PATCH` endpoint already exists).
-- Add integration tests for the API with `WebApplicationFactory`.
-- Add input validation with FluentValidation.
+- Real accounts: ASP.NET Core Identity + JWT (protect the REST API and the hub).
+- Read receipts ("seen"), message editing/deleting, emoji reactions.
+- Send images and files.
+- Browser notifications for new messages when the tab is in the background.
+- Store online presence in Redis and use the SignalR Redis backplane to run several servers.
+- Integration tests with `WebApplicationFactory` and end-to-end tests with Playwright.
 - Dockerize the API and the Angular app.

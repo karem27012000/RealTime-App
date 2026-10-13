@@ -1,0 +1,64 @@
+.layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  height: 100dvh;
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+
+  &__error {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin: 0.75rem 1.5rem 0;
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    background: var(--error-bg);
+    color: var(--error-text);
+
+    button {
+      border: none;
+      background: none;
+      color: inherit;
+      cursor: pointer;
+    }
+  }
+
+  &__typing {
+    min-height: 1.4rem;
+    margin: 0;
+    padding: 0 1.5rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-style: italic;
+  }
+
+  &__empty {
+    margin: auto;
+    padding: 1.5rem;
+    max-width: 420px;
+    text-align: center;
+    color: var(--muted);
+
+    h2 {
+      color: var(--text);
+    }
+  }
+}
+
+/* Phone: show either the list or the open chat. */
+@media (max-width: 720px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .layout--room-open app-sidebar,
+  .layout:not(.layout--room-open) .chat {
+    display: none;
+  }
+}
