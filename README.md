@@ -15,6 +15,9 @@ ASP.NET Core Web API (http://localhost:5000)
    └── Domain       → Conversation, Message entities
 ```
 
+A full project guide (technologies, architecture, every file, API, concepts) is in
+[`docs/RealTime-App-Project-Guide.docx`](docs/RealTime-App-Project-Guide.docx).
+
 ## Project structure
 
 ```
