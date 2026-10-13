@@ -1,0 +1,26 @@
+<aside class="sidebar">
+  <a class="sidebar__new" routerLink="/">+ New chat</a>
+
+  <nav class="sidebar__list" aria-label="Conversations">
+    @for (conversation of conversations(); track conversation.id) {
+      <a
+        class="item"
+        [class.item--active]="conversation.id === activeId()"
+        [routerLink]="['/c', conversation.id]"
+      >
+        <span class="item__title">{{ conversation.title }}</span>
+        <span class="item__date">{{ conversation.updatedAt | date: 'short' }}</span>
+        <button
+          type="button"
+          class="item__delete"
+          (click)="onDelete($event, conversation)"
+          aria-label="Delete conversation"
+        >
+          🗑
+        </button>
+      </a>
+    } @empty {
+      <p class="sidebar__empty">No conversations yet.</p>
+    }
+  </nav>
+</aside>
