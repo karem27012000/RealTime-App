@@ -1,0 +1,59 @@
+<div class="layout" [class.layout--room-open]="store.activeRoomId()">
+  <app-sidebar
+    [currentUser]="store.currentUser()"
+    [rooms]="store.rooms()"
+    [users]="store.otherUsers()"
+    [joinableGroups]="store.joinableGroups()"
+    [activeRoomId]="store.activeRoomId()"
+    [unread]="store.unread()"
+    [onlineUserIds]="store.onlineUserIds()"
+    [connectionState]="store.connectionState()"
+    (userSelected)="store.startPrivateChat($event)"
+    (groupCreated)="store.createGroup($event)"
+    (groupJoined)="store.joinGroup($event)"
+    (groupsTabOpened)="store.loadJoinableGroups()"
+    (loggedOut)="store.logout()"
+  />
+
+  <main class="chat">
+    @if (store.error(); as error) {
+      <div class="chat__error" role="alert">
+        <span>{{ error }}</span>
+        <button type="button" (click)="store.clearError()" aria-label="Dismiss">✕</button>
+      </div>
+    }
+
+    @if (store.activeRoomId()) {
+      <app-room-header
+        [room]="store.activeRoom()"
+        [currentUserId]="store.currentUser()?.id ?? null"
+        (left)="store.leaveGroup($event)"
+      />
+
+      <app-message-list
+        [messages]="store.messages()"
+        [currentUserId]="store.currentUser()?.id ?? null"
+        [isGroup]="store.activeRoom()?.type === 'group'"
+        [isLoading]="store.isLoadingMessages()"
+        [hasOlder]="store.hasOlderMessages()"
+        (loadOlder)="store.loadOlderMessages()"
+      />
+
+      <p class="chat__typing" aria-live="polite">{{ store.typingText() ?? '' }}</p>
+
+      <app-message-input
+        [disabled]="store.connectionState() !== 'connected'"
+        (send)="store.sendMessage($event)"
+        (typing)="store.notifyTyping()"
+      />
+    } @else {
+      <div class="chat__empty">
+        <h2>👋 Hi {{ store.currentUser()?.nickname }}!</h2>
+        <p>
+          Pick a chat on the left, start a private chat from <b>People</b>, or create a room in
+          <b>Groups</b>.
+        </p>
+      </div>
+    }
+  </main>
+</div>

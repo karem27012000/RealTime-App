@@ -1,0 +1,27 @@
+<section class="messages" #scrollContainer aria-live="polite">
+  @if (hasOlder()) {
+    <button type="button" class="older" [disabled]="isLoading()" (click)="loadOlder.emit()">
+      {{ isLoading() ? 'Loading…' : 'Load older messages' }}
+    </button>
+  }
+
+  @for (message of messages(); track message.id; let i = $index) {
+    @if (showDate(i)) {
+      <div class="date">{{ message.createdAt | date: 'fullDate' }}</div>
+    }
+
+    <div class="bubble" [class.bubble--mine]="message.senderId === currentUserId()">
+      @if (showSender(i)) {
+        <span class="bubble__author">{{ message.senderNickname }}</span>
+      }
+      <p class="bubble__text">{{ message.content }}</p>
+      <span class="bubble__time">{{ message.createdAt | date: 'shortTime' }}</span>
+    </div>
+  } @empty {
+    @if (isLoading()) {
+      <p class="hint">Loading…</p>
+    } @else {
+      <p class="hint">No messages yet. Say hello! 👋</p>
+    }
+  }
+</section>

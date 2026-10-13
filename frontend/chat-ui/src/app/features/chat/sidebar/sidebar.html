@@ -1,0 +1,129 @@
+<aside class="sidebar">
+  <header class="me">
+    <span class="avatar">{{ currentUser()?.nickname?.charAt(0)?.toUpperCase() }}</span>
+    <div class="me__info">
+      <strong>{{ currentUser()?.nickname }}</strong>
+      <span class="status" [class]="'status--' + connectionState()">{{ connectionState() }}</span>
+    </div>
+    <button type="button" class="link-button" (click)="loggedOut.emit()">Log out</button>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button
+      type="button"
+      role="tab"
+      [class.active]="tab() === 'chats'"
+      (click)="selectTab('chats')"
+    >
+      Chats
+    </button>
+    <button
+      type="button"
+      role="tab"
+      [class.active]="tab() === 'people'"
+      (click)="selectTab('people')"
+    >
+      People
+    </button>
+    <button
+      type="button"
+      role="tab"
+      [class.active]="tab() === 'groups'"
+      (click)="selectTab('groups')"
+    >
+      Groups
+    </button>
+  </nav>
+
+  <div class="list">
+    @switch (tab()) {
+      @case ('chats') {
+        @for (room of rooms(); track room.id) {
+          <a
+            class="item"
+            [class.item--active]="room.id === activeRoomId()"
+            [routerLink]="['/chat', room.id]"
+          >
+            <span class="avatar" [class.avatar--group]="room.type === 'group'">
+              {{ room.type === 'group' ? '#' : room.name.charAt(0).toUpperCase() }}
+              @if (isOnline(room)) {
+                <i class="dot" aria-label="online"></i>
+              }
+            </span>
+            <span class="item__body">
+              <span class="item__top">
+                <span class="item__title">{{ room.name }}</span>
+                @if (room.lastMessage) {
+                  <span class="item__time">{{
+                    room.lastMessage.createdAt | date: 'shortTime'
+                  }}</span>
+                }
+              </span>
+              <span class="item__bottom">
+                <span class="item__preview">{{ preview(room) }}</span>
+                @if (unread()[room.id]; as count) {
+                  <span class="badge">{{ count }}</span>
+                }
+              </span>
+            </span>
+          </a>
+        } @empty {
+          <p class="empty">
+            No chats yet. Find someone in <b>People</b> or a room in <b>Groups</b>.
+          </p>
+        }
+      }
+
+      @case ('people') {
+        @for (user of users(); track user.id) {
+          <button type="button" class="item" (click)="openPrivateChat(user)">
+            <span class="avatar">
+              {{ user.nickname.charAt(0).toUpperCase() }}
+              @if (user.isOnline) {
+                <i class="dot" aria-label="online"></i>
+              }
+            </span>
+            <span class="item__body">
+              <span class="item__title">{{ user.nickname }}</span>
+              <span class="item__preview">
+                {{ user.isOnline ? 'Online' : 'Last seen ' + (user.lastSeenAt | date: 'short') }}
+              </span>
+            </span>
+          </button>
+        } @empty {
+          <p class="empty">
+            Nobody else is here yet. Open the app in another browser and log in with another
+            nickname!
+          </p>
+        }
+      }
+
+      @case ('groups') {
+        <form class="new-group" (ngSubmit)="createGroup()">
+          <input
+            name="groupName"
+            placeholder="New group name"
+            maxlength="50"
+            [ngModel]="newGroupName()"
+            (ngModelChange)="newGroupName.set($event)"
+            aria-label="New group name"
+          />
+          <button type="submit" [disabled]="newGroupName().trim().length < 2">Create</button>
+        </form>
+
+        @for (group of joinableGroups(); track group.id) {
+          <div class="item">
+            <span class="avatar avatar--group">#</span>
+            <span class="item__body">
+              <span class="item__title">{{ group.name }}</span>
+              <span class="item__preview">{{ group.memberCount }} members</span>
+            </span>
+            <button type="button" class="join" (click)="joinGroup(group)">Join</button>
+          </div>
+        } @empty {
+          <p class="empty">No other groups to join. Create one above!</p>
+        }
+      }
+    }
+  </div>
+</aside>
